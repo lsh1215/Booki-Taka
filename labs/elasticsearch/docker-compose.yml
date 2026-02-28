@@ -1,0 +1,180 @@
+# ==============================================================
+# Elasticsearch 학습 환경 - 3노드 클러스터
+# 보안 비활성화 (로컬 학습 전용)
+# ==============================================================
+
+networks:
+  es-net:
+    driver: bridge
+
+volumes:
+  es01-data:
+  es02-data:
+  es03-data:
+  es-snapshots:
+
+services:
+
+  # -------------------------------------------------------
+  # es01: 마스터 + 데이터 노드
+  # -------------------------------------------------------
+  es01:
+    build:
+      context: .
+      dockerfile: Dockerfile.es
+      args:
+        ES_VERSION: 8.12.0
+    image: es-lab:8.12.0
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=es-lab
+      - discovery.seed_hosts=es02,es03
+      - cluster.initial_master_nodes=es01
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1073741824
+    volumes:
+      - es01-data:/usr/share/elasticsearch/data
+      - es-snapshots:/usr/share/elasticsearch/snapshots
+      - ./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9200:9200"
+    networks:
+      - es-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # -------------------------------------------------------
+  # es02: 데이터 노드
+  # -------------------------------------------------------
+  es02:
+    build:
+      context: .
+      dockerfile: Dockerfile.es
+      args:
+        ES_VERSION: 8.12.0
+    image: es-lab:8.12.0
+    container_name: es02
+    environment:
+      - node.name=es02
+      - cluster.name=es-lab
+      - discovery.seed_hosts=es01,es03
+      - cluster.initial_master_nodes=es01
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1073741824
+    volumes:
+      - es02-data:/usr/share/elasticsearch/data
+      - es-snapshots:/usr/share/elasticsearch/snapshots
+      - ./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9201:9200"
+    networks:
+      - es-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # -------------------------------------------------------
+  # es03: 데이터 노드
+  # -------------------------------------------------------
+  es03:
+    build:
+      context: .
+      dockerfile: Dockerfile.es
+      args:
+        ES_VERSION: 8.12.0
+    image: es-lab:8.12.0
+    container_name: es03
+    environment:
+      - node.name=es03
+      - cluster.name=es-lab
+      - discovery.seed_hosts=es01,es02
+      - cluster.initial_master_nodes=es01
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1073741824
+    volumes:
+      - es03-data:/usr/share/elasticsearch/data
+      - es-snapshots:/usr/share/elasticsearch/snapshots
+      - ./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9202:9200"
+    networks:
+      - es-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # -------------------------------------------------------
+  # Kibana: ES 데이터 시각화 및 DevTools 쿼리 도구
+  # -------------------------------------------------------
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es01:9200
+      - XPACK_SECURITY_ENABLED=false
+    volumes:
+      - ./config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - es-net
+    depends_on:
+      es01:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
+  # -------------------------------------------------------
+  # Cerebro: ES 클러스터 시각화 관리 도구
+  # -------------------------------------------------------
+  cerebro:
+    image: lmenezes/cerebro:latest
+    container_name: cerebro
+    ports:
+      - "9000:9000"
+    networks:
+      - es-net
+    depends_on:
+      es01:
+        condition: service_healthy
+    command:
+      - -Dhosts.0.host=http://es01:9200

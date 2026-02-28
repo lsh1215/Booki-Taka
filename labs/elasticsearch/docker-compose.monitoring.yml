@@ -1,0 +1,72 @@
+# ==============================================================
+# 모니터링 오버레이 - Prometheus + Grafana + ES Exporter
+# 사용법: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+# ==============================================================
+
+services:
+
+  # -------------------------------------------------------
+  # elasticsearch-exporter: ES 메트릭을 Prometheus 형식으로 노출
+  # -------------------------------------------------------
+  es-exporter:
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:latest
+    container_name: es-exporter
+    command:
+      - "--es.uri=http://es01:9200"
+      - "--es.all"
+      - "--es.indices"
+      - "--es.cluster_settings"
+      - "--es.indices_settings"
+      - "--es.shards"
+    ports:
+      - "9114:9114"
+    networks:
+      - es-net
+    depends_on:
+      es01:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # Prometheus: 메트릭 수집 및 저장소
+  # -------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    networks:
+      - es-net
+    depends_on:
+      - es-exporter
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # Grafana: 대시보드 시각화
+  # -------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3000
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - es-net
+    depends_on:
+      - prometheus
+    restart: unless-stopped

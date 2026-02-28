@@ -1,0 +1,33 @@
+# ==============================================================
+# Prometheus 설정 파일
+# Elasticsearch 메트릭을 15초마다 수집
+# ==============================================================
+
+global:
+  scrape_interval: 15s        # 기본 수집 주기
+  evaluation_interval: 15s    # 규칙 평가 주기
+  scrape_timeout: 10s
+
+# 알림 규칙 파일 (필요시 추가)
+rule_files: []
+
+# ==============================================================
+# 스크랩 설정
+# ==============================================================
+scrape_configs:
+
+  # Prometheus 자체 메트릭 수집
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Elasticsearch 메트릭 수집 (elasticsearch-exporter 경유)
+  - job_name: "elasticsearch"
+    scrape_interval: 15s
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["es-exporter:9114"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "es-lab-cluster"

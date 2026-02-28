@@ -1,0 +1,47 @@
+# ==============================================================
+# Elasticsearch 공통 설정 파일 (학습 환경)
+# 각 노드별 고유 설정(node.name, ports 등)은 docker-compose.yml에서 환경변수로 주입
+# ==============================================================
+
+# 클러스터 이름
+cluster.name: es-lab
+
+# 네트워크: 모든 인터페이스에서 수신 (컨테이너 환경)
+network.host: 0.0.0.0
+
+# HTTP 포트
+http.port: 9200
+
+# 트랜스포트 포트 (노드간 통신)
+transport.port: 9300
+
+# ==============================================================
+# 보안 설정 비활성화 (로컬 학습 전용 - 프로덕션에서는 절대 사용 금지)
+# ==============================================================
+xpack.security.enabled: false
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+# ==============================================================
+# 인덱스 설정 기본값
+# ==============================================================
+# 학습 환경에서 샤드 자동 할당 허용
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: "85%"
+cluster.routing.allocation.disk.watermark.high: "90%"
+cluster.routing.allocation.disk.watermark.flood_stage: "95%"
+
+# ==============================================================
+# 참고: 슬로우 쿼리 로그는 인덱스 레벨 설정이므로 여기서 지정할 수 없다.
+# 인덱스별로 설정하려면:
+# PUT /<index>/_settings
+# { "index.search.slowlog.threshold.query.warn": "10s",
+#   "index.search.slowlog.threshold.query.info": "5s",
+#   "index.search.slowlog.threshold.fetch.warn": "1s",
+#   "index.indexing.slowlog.threshold.index.warn": "10s" }
+# ==============================================================
+
+# ==============================================================
+# 스냅샷 저장소 경로 (05-snapshot-restore 실습용)
+# ==============================================================
+path.repo: ["/usr/share/elasticsearch/snapshots"]
