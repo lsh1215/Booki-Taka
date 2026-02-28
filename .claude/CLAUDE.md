@@ -302,6 +302,11 @@ Announce major behavior activations to keep users informed: autopilot, ralph-loo
 | `/study` | `study/session.md` | First Principles 기반 학습 세션 (PDF→원리→대화→검증→블로그) |
 | `/setup-quiz` | `study/setup-quiz.md` | Slack 일일 복습 퀴즈 시스템 구축 (GitHub Actions + Leitner) |
 
+### ✍️ writing/ — 글쓰기
+| 호출 | 파일 | 설명 |
+|---|---|---|
+| `/blog` | `writing/blog.md` | 기술 블로그 글쓰기. 오웰·진서·그레이엄 철학 + Toulmin 논증 + Steel Man + 담백한 문체 |
+
 ## 스킬 추가 시 규칙
 1. `.claude/skills/{카테고리}/{이름}.md`에 파일 생성
 2. 이 섹션의 카탈로그 테이블에 등록

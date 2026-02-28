@@ -13,6 +13,11 @@
 | [session](study/session.md) | `/study` | First Principles 기반 학습 세션. PDF 읽기→원리 추출→"왜?" 대화→유형별 검증→블로그 작성 |
 | [setup-quiz](study/setup-quiz.md) | `/setup-quiz` | Slack 일일 복습 퀴즈 시스템 구축. GitHub Actions + Leitner 간격반복 |
 
+### ✍️ writing/ — 글쓰기 관련
+| 스킬 | 호출 | 설명 |
+|---|---|---|
+| [blog](writing/blog.md) | `/blog` | 기술 블로그 글쓰기. 오웰·진서·그레이엄 철학 + Toulmin 논증 + Steel Man + 담백한 문체 |
+
 ---
 
 ## 스킬 추가 규칙
@@ -44,8 +49,13 @@
 
 ```
 /study (학습 세션)
-  └── Phase 3 검증 → quiz_bank.json에 퀴즈 자동 저장
-                          ↓
-/setup-quiz (퀴즈 시스템)
-  └── GitHub Actions → 매일 Slack으로 복습 퀴즈 발송 + 키워드 채점
+  ├── Phase 3 검증 → quiz_bank.json에 퀴즈 자동 저장
+  │                       ↓
+  │   /setup-quiz (퀴즈 시스템)
+  │     └── GitHub Actions → 매일 Slack으로 복습 퀴즈 발송 + 키워드 채점
+  │
+  └── Phase 4 블로그 작성 → /blog 글쓰기 철학 공유
+                                ↓
+      /blog (블로그 글쓰기)
+        └── 뼈대 → 초안 → Kill Your Darlings 검수 → Notion 저장
 ```
