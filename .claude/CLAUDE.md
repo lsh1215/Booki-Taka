@@ -307,6 +307,11 @@ Announce major behavior activations to keep users informed: autopilot, ralph-loo
 |---|---|---|
 | `/blog` | `writing/blog.md` | 기술 블로그 글쓰기. 오웰·진서·그레이엄 철학 + Toulmin 논증 + Steel Man + 담백한 문체 |
 
+### 🔬 lab/ — 실습 환경
+| 호출 | 파일 | 설명 |
+|---|---|---|
+| `/lab [기술]` | `lab/setup.md` | Docker Compose 기반 실습 환경. Kafka/ES/MySQL/Redis + 모니터링 + 부하테스트 |
+
 ## 스킬 추가 시 규칙
 1. `.claude/skills/{카테고리}/{이름}.md`에 파일 생성
 2. 이 섹션의 카탈로그 테이블에 등록
