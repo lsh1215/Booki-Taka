@@ -1,0 +1,22 @@
+# PDF 책 파일 (용량 큼)
+책 목록/
+
+# IDE
+.idea/
+*.iml
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경변수
+.env
+.env.*
+!.env.example
+
+# 퀴즈 시스템 (로컬 상태)
+quizzes/quiz_bank.json
+
+# OMC 런타임
+.omc/
