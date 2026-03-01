@@ -10,7 +10,8 @@
 ### 📖 study/ — 학습 관련
 | 스킬 | 호출 | 설명 |
 |---|---|---|
-| [session](study/session.md) | `/study` | First Principles 기반 학습 세션. PDF 읽기→원리 추출→"왜?" 대화→유형별 검증→블로그 작성 |
+| [session](study/session.md) | `/study` | First Principles 기반 학습 세션. PDF 읽기→원리 추출→"왜?" 대화→유형별 검증→블로그 작성 + 개념별 메타인지 추적 |
+| [vault](study/vault.md) | `/study-vault` | 책 PDF → 구조화된 학습 노트 사전 생성. 대시보드/빠른참조/시험함정/개념별 노트 + 능동적 회상 |
 | [setup-quiz](study/setup-quiz.md) | `/setup-quiz` | Slack 일일 복습 퀴즈 시스템 구축. GitHub Actions + Leitner 간격반복 |
 
 ### ✍️ writing/ — 글쓰기 관련
@@ -33,6 +34,7 @@
    ├── index.md              ← 이 파일 (마스터 인덱스)
    ├── study/                ← 학습 관련
    │   ├── session.md
+   │   ├── vault.md
    │   └── setup-quiz.md
    ├── writing/              ← 블로그/문서 관련 (예시)
    └── infra/                ← 인프라/DevOps 관련 (예시)
@@ -53,7 +55,10 @@
 ## 연동 관계
 
 ```
-/study (학습 세션)
+/study-vault (사전 노트 생성) ─── 책 읽기 전 구조화된 노트 먼저 생성
+  └── 대시보드 + 빠른참조 + 시험함정 + 개념/실습 노트
+                    ↓ (노트를 기반으로 깊은 학습)
+/study (학습 세션) ─── 개념별 메타인지 추적 (🟦🟩🟨🟥⬜)
   ├── Phase 3 검증 → quiz_bank.json에 퀴즈 자동 저장
   │                       ↓
   │   /setup-quiz (퀴즈 시스템)
