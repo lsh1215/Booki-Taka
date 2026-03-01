@@ -300,7 +300,7 @@ Announce major behavior activations to keep users informed: autopilot, ralph-loo
 | 호출 | 파일 | 설명 |
 |---|---|---|
 | `/study` | `study/session.md` | First Principles 기반 학습 세션 (PDF→원리→대화→검증→블로그) + 개념별 메타인지 추적 |
-| `/study-vault` | `study/vault.md` | 책 PDF → 구조화된 학습 노트 사전 생성 (대시보드/빠른참조/시험함정/개념별 노트) |
+| `/study-vault` | `study/vault.md` | 책 PDF → 구조화된 학습 노트 사전 생성 (대시보드/빠른참조/개념비교/설계 트레이드오프) |
 | `/setup-quiz` | `study/setup-quiz.md` | Slack 일일 복습 퀴즈 시스템 구축 (GitHub Actions + Leitner) |
 
 ### ✍️ writing/ — 글쓰기
