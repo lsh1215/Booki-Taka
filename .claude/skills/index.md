@@ -11,7 +11,7 @@
 | 스킬 | 호출 | 설명 |
 |---|---|---|
 | [session](study/session.md) | `/study` | First Principles 기반 학습 세션. PDF 읽기→원리 추출→"왜?" 대화→유형별 검증→블로그 작성 + 개념별 메타인지 추적 |
-| [vault](study/vault.md) | `/study-vault` | 책 PDF → 구조화된 학습 노트 사전 생성. 대시보드/빠른참조/시험함정/개념별 노트 + 능동적 회상 + 설계 트레이드오프 |
+| [vault](study/vault.md) | `/study-vault` | 책 PDF → 구조화된 학습 노트 사전 생성. 대시보드/빠른참조/개념비교/설계 트레이드오프 + 능동적 회상 |
 | [setup-quiz](study/setup-quiz.md) | `/setup-quiz` | Slack 일일 복습 퀴즈 시스템 구축. GitHub Actions + Leitner 간격반복 |
 
 ### ✍️ writing/ — 글쓰기 관련
@@ -56,7 +56,7 @@
 
 ```
 /study-vault (사전 노트 생성) ─── 책 읽기 전 구조화된 노트 먼저 생성
-  └── 대시보드 + 빠른참조 + 시험함정 + 개념/실습 노트
+  └── 대시보드 + 빠른참조 + 개념비교 + 개념/실습 노트
                     ↓ (노트를 기반으로 깊은 학습)
 /study (학습 세션) ─── 개념별 메타인지 추적 (🟦🟩🟨🟥⬜)
   ├── Phase 3 검증 → quiz_bank.json에 퀴즈 자동 저장
@@ -69,8 +69,8 @@
   │   /lab (실습 환경)
   │     └── Docker Compose 기동 → 모니터링 → 테스트 → 관찰 → 분석
   │
-  └── Phase 4 블로그 작성 → /blog 글쓰기 철학 공유
-                                ↓
-      /blog (블로그 글쓰기)
+  └── Phase 4 학습 메모 → study-notes/에 소재 저장
+                                ↓ (블로그로 쓰고 싶을 때)
+      /blog (블로그 글쓰기) ─── 별도 호출
         └── 뼈대 → 초안 → Kill Your Darlings 검수 → Notion 저장
 ```

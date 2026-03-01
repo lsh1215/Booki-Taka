@@ -70,7 +70,7 @@
 
 ### 디렉토리 구조
 ```
-study-vault/[책이름]/
+study-vault/{카테고리}/{책이름}/       # 예: study-vault/카프카/카프카_핵심_가이드/
 ├── 00-dashboard.md              # 전체 조감도 (MOC)
 ├── 00-quick-reference.md        # 빠른 참조표 (핵심 명령어, API, 설정값)
 ├── 00-concept-compare.md         # 혼동하기 쉬운 개념 비교 (구조적 차이 분석)
@@ -104,7 +104,7 @@ study-vault/[책이름]/
 | 02 | [토픽명] | N개 | N개 | ★★☆ | #tag3, #tag4 |
 
 ## 약점 영역
-_(학습 후 concepts/ 추적 파일에서 자동 반영)_
+_(학습 후 tracking/ 메타인지 추적 파일에서 자동 반영)_
 
 ## 참고
 - 출처: [책 이름] ([저자], [출판사])
@@ -286,7 +286,7 @@ _(학습 후 concepts/ 추적 파일에서 자동 반영)_
 
 vault 생성 후 `/study`로 깊이 학습할 때:
 1. `/study`의 Phase 1에서 vault의 concepts.md를 참조하여 원리 추출을 보강한다.
-2. Phase 3 검증 결과는 `concepts/` 메타인지 추적 파일에 동일하게 기록된다.
+2. Phase 3 검증 결과는 `tracking/` 메타인지 추적 파일에 동일하게 기록된다.
 3. vault의 연습 문제 중 틀린 것은 quiz_bank.json에 자동 추가할 수 있다.
 
 ---
