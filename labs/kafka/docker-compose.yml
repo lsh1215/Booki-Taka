@@ -1,0 +1,209 @@
+# =============================================================================
+# Kafka KRaft 모드 실습 환경 (ZooKeeper 없음)
+#
+# KRaft(Kafka Raft Metadata mode): Kafka 3.3+에서 정식 지원.
+# ZooKeeper 의존성을 제거하고 Kafka 자체적으로 메타데이터를 관리.
+# 브로커가 controller + broker 역할을 동시에 수행하는 "combined mode" 사용.
+#
+# 학습 포인트:
+#   - 3개 브로커로 구성된 클러스터: 1개 장애 시에도 서비스 유지 가능
+#   - KAFKA_MIN_INSYNC_REPLICAS=2 + acks=all 조합이 왜 중요한지 이해
+#     → acks=all은 ISR 전체에 복제 완료를 요구
+#     → min.insync.replicas=2는 최소 2개 replica가 동기화되어야 쓰기 허용
+#     → 3개 중 1개가 내려가도 쓰기 가능, 2개가 내려가면 쓰기 차단(데이터 유실 방지)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # broker-1: Kafka 브로커 + 컨트롤러 역할 동시 수행 (combined mode)
+  # ---------------------------------------------------------------------------
+  broker-1:
+    image: apache/kafka:3.7.1
+    container_name: broker-1
+    environment:
+      # 각 브로커를 구분하는 고유 ID (KRaft에서 필수)
+      KAFKA_NODE_ID: 1
+
+      # combined mode: 하나의 프로세스가 broker와 controller 역할 모두 담당
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # 클러스터 전체에서 동일한 UUID 사용 (kafka-storage.sh format-storage 시 생성)
+      # 모든 브로커가 같은 CLUSTER_ID를 가져야 동일 클러스터로 인식됨
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+
+      # Raft 합의에 참여하는 컨트롤러 목록 (nodeId@host:port 형식)
+      # 과반수(2/3) 이상 가용해야 리더 선출 및 메타데이터 변경 가능
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker-1:9093,2@broker-2:9095,3@broker-3:9097
+
+      # 리스너 정의
+      #   PLAINTEXT: 내부 브로커 간 통신 (29092)
+      #   EXTERNAL: 외부 클라이언트 접근용 (9092, 호스트에서 접근)
+      #   CONTROLLER: KRaft 컨트롤러 통신 전용 (9093)
+      KAFKA_LISTENERS: PLAINTEXT://:29092,EXTERNAL://:9092,CONTROLLER://:9093
+
+      # 클라이언트에게 알려주는 실제 접속 주소
+      #   PLAINTEXT: 컨테이너 내부 통신 (다른 브로커 또는 내부 서비스)
+      #   EXTERNAL: 호스트 머신에서 접근할 때 사용 (localhost:9092)
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker-1:29092,EXTERNAL://localhost:9092
+
+      # 각 리스너의 보안 프로토콜 매핑
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      # 브로커 간 복제에 사용할 리스너 이름
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # 컨트롤러 통신에 사용할 리스너 이름
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # __consumer_offsets 토픽의 복제 인수
+      # 컨슈머 그룹 오프셋 정보를 3개 브로커에 분산 저장
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+
+      # 새로 생성되는 토픽의 기본 복제 인수
+      # 학습 포인트: replication.factor=3이면 1개 브로커 장애 허용
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+
+      # 쓰기 요청 시 최소 동기화 replica 수
+      # acks=all + min.insync.replicas=2 → 강한 내구성 보장
+      # 브로커 1개 다운 → 여전히 2개 ISR 확보 → 쓰기 허용
+      # 브로커 2개 다운 → ISR 1개 → NotEnoughReplicasException 발생 → 데이터 유실 방지
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+
+      # 토픽 기본 파티션 수 (병렬 처리 단위)
+      # 학습 포인트: 파티션 수 = 최대 컨슈머 병렬 처리 수
+      KAFKA_NUM_PARTITIONS: 3
+
+      # 로그 보존 시간: 168시간 = 7일
+      KAFKA_LOG_RETENTION_HOURS: 168
+
+      # 로그 세그먼트 파일 최대 크기: 1GB
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+
+      # JVM 힙 메모리 설정 (실습 환경 최소화)
+      # 운영 환경에서는 6GB ~ 8GB 권장
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+
+    ports:
+      - "9092:9092"   # 외부 클라이언트 접근 포트
+      - "29092:29092" # 내부 브로커 통신 포트
+      - "9093:9093"   # 컨트롤러 포트
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # broker-2: 두 번째 Kafka 브로커 + 컨트롤러
+  # ---------------------------------------------------------------------------
+  broker-2:
+    image: apache/kafka:3.7.1
+    container_name: broker-2
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker-1:9093,2@broker-2:9095,3@broker-3:9097
+      KAFKA_LISTENERS: PLAINTEXT://:29094,EXTERNAL://:9094,CONTROLLER://:9095
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker-2:29094,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+
+    ports:
+      - "9094:9094"   # 외부 클라이언트 접근 포트
+      - "29094:29094" # 내부 브로커 통신 포트
+      - "9095:9095"   # 컨트롤러 포트
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9094"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # broker-3: 세 번째 Kafka 브로커 + 컨트롤러
+  # ---------------------------------------------------------------------------
+  broker-3:
+    image: apache/kafka:3.7.1
+    container_name: broker-3
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker-1:9093,2@broker-2:9095,3@broker-3:9097
+      KAFKA_LISTENERS: PLAINTEXT://:29096,EXTERNAL://:9096,CONTROLLER://:9097
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker-3:29096,EXTERNAL://localhost:9096
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+
+    ports:
+      - "9096:9096"   # 외부 클라이언트 접근 포트
+      - "29096:29096" # 내부 브로커 통신 포트
+      - "9097:9097"   # 컨트롤러 포트
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9096"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - kafka-net
+
+  # ---------------------------------------------------------------------------
+  # Kafka UI: 웹 기반 Kafka 클러스터 모니터링 도구
+  #
+  # 학습 포인트:
+  #   - 토픽 생성/삭제, 파티션 분포, 컨슈머 그룹 lag 등을 시각적으로 확인 가능
+  #   - 브로커 장애 시 파티션 리더 재선출 과정을 실시간으로 관찰 가능
+  #   - http://localhost:8080 에서 접근
+  # ---------------------------------------------------------------------------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      # 클러스터 이름 (UI에 표시되는 이름)
+      KAFKA_CLUSTERS_0_NAME: local-cluster
+      # 내부 네트워크를 통해 각 브로커에 연결 (PLAINTEXT 리스너 사용)
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker-1:29092,broker-2:29094,broker-3:29096
+    depends_on:
+      broker-1:
+        condition: service_healthy
+      broker-2:
+        condition: service_healthy
+      broker-3:
+        condition: service_healthy
+    networks:
+      - kafka-net
+
+# =============================================================================
+# 네트워크 설정
+# bridge 드라이버: 동일 호스트 내 컨테이너들이 서로 통신 가능
+# 컨테이너 이름(broker-1, broker-2, broker-3)이 DNS로 동작함
+# =============================================================================
+networks:
+  kafka-net:
+    driver: bridge

@@ -1,0 +1,69 @@
+# ==============================================================
+# 모니터링 오버레이 - Prometheus + Grafana + Kafka Exporter
+# 사용법: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+# ==============================================================
+
+services:
+
+  # -------------------------------------------------------
+  # kafka-exporter: Kafka 메트릭을 Prometheus 형식으로 노출
+  # Consumer group lag, topic/partition 정보 등을 스크랩
+  # -------------------------------------------------------
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
+    command:
+      - "--kafka.server=broker-1:29092"
+      - "--kafka.server=broker-2:29094"
+      - "--kafka.server=broker-3:29096"
+      - "--web.listen-address=:9308"
+      - "--log.level=info"
+    ports:
+      - "9308:9308"
+    networks:
+      - kafka-net
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # Prometheus: 메트릭 수집 및 저장소
+  # -------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    networks:
+      - kafka-net
+    depends_on:
+      - kafka-exporter
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # Grafana: 대시보드 시각화
+  # -------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3000
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - kafka-net
+    depends_on:
+      - prometheus
+    restart: unless-stopped
